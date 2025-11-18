@@ -46,17 +46,14 @@ elif [[ -f "$INPUT_PATH" ]]; then
     *.tar.gz|*.tgz)
       tar -xzf "$INPUT_PATH" -C "$cleanup_dir"
       ;;
-    *.json.gz)
-      gunzip -c "$INPUT_PATH" > "${cleanup_dir}/${DATASET_NAME}.json"
+    *.json.gz|*.gz)
+      cp "$INPUT_PATH" "${cleanup_dir}/${base_name}"
       ;;
     *.tar)
       tar -xf "$INPUT_PATH" -C "$cleanup_dir"
       ;;
     *.zip)
       unzip -q "$INPUT_PATH" -d "$cleanup_dir"
-      ;;
-    *.gz)
-      gunzip -c "$INPUT_PATH" > "${cleanup_dir}/${DATASET_NAME}.json"
       ;;
     *)
       echo "Formato de archivo no soportado. Usa carpeta, .tar.gz, .tgz, .tar, .gz o .zip" >&2
@@ -69,10 +66,10 @@ else
   exit 1
 fi
 
-mapfile -t JSON_FILES < <(find "$working_dir" -type f -name '*.json' -print | sort)
+mapfile -t DATA_FILES < <(find "$working_dir" -type f \( -name '*.json' -o -name '*.json.gz' -o -name '*.gz' \) -print | sort)
 
-if [[ ${#JSON_FILES[@]} -eq 0 ]]; then
-  echo "No se encontraron archivos .json en ${INPUT_PATH}" >&2
+if [[ ${#DATA_FILES[@]} -eq 0 ]]; then
+  echo "No se encontraron archivos .json o .json.gz en ${INPUT_PATH}" >&2
   [[ -n "$cleanup_dir" ]] && rm -rf "$cleanup_dir"
   exit 1
 fi
@@ -80,7 +77,7 @@ fi
 if [[ -n "$COLLECTION_OVERRIDE" ]]; then
   TARGET_COLLECTION="$COLLECTION_OVERRIDE"
   DROP_ONCE=true
-elif [[ ${#JSON_FILES[@]} -eq 1 ]]; then
+elif [[ ${#DATA_FILES[@]} -eq 1 ]]; then
   TARGET_COLLECTION="$DATASET_NAME"
   DROP_ONCE=true
 else
@@ -91,9 +88,9 @@ fi
 docker exec mongo8 sh -c "mkdir -p /backups/restore"
 
 FIRST_IMPORT=true
-for JSON_FILE in "${JSON_FILES[@]}"; do
-  DEST_FILE="/backups/restore/$(basename "$JSON_FILE")"
-  docker cp "$JSON_FILE" "mongo8:${DEST_FILE}" >/dev/null
+for DATA_FILE in "${DATA_FILES[@]}"; do
+  DEST_FILE="/backups/restore/$(basename "$DATA_FILE")"
+  docker cp "$DATA_FILE" "mongo8:${DEST_FILE}" >/dev/null
 
   if [[ -n "$TARGET_COLLECTION" ]]; then
     COLLECTION_NAME="$TARGET_COLLECTION"
@@ -102,11 +99,28 @@ for JSON_FILE in "${JSON_FILES[@]}"; do
       DROP_FLAG="--drop"
     fi
   else
-    COLLECTION_NAME=$(basename "$JSON_FILE" .json)
+    case "$DATA_FILE" in
+      *.json.gz)
+        COLLECTION_NAME=$(basename "$DATA_FILE" .json.gz)
+        ;;
+      *.gz)
+        COLLECTION_NAME=$(basename "$DATA_FILE" .gz)
+        ;;
+      *)
+        COLLECTION_NAME=$(basename "$DATA_FILE" .json)
+        ;;
+    esac
     DROP_FLAG="--drop"
   fi
 
-  echo "Restaurando colección '${COLLECTION_NAME}' desde '$(basename "$JSON_FILE")'..."
+  IMPORT_GZIP_FLAG=""
+  case "$DATA_FILE" in
+    *.gz)
+      IMPORT_GZIP_FLAG="--gzip"
+      ;;
+  esac
+
+  echo "Restaurando colección '${COLLECTION_NAME}' desde '$(basename "$DATA_FILE")'..."
   docker exec mongo8 sh -c "mongoimport \
     --username \"$MONGO_INITDB_ROOT_USERNAME\" \
     --password \"$MONGO_INITDB_ROOT_PASSWORD\" \
@@ -114,6 +128,7 @@ for JSON_FILE in "${JSON_FILES[@]}"; do
     --db \"$MONGO_DB_NAME\" \
     --collection \"${COLLECTION_NAME}\" \
     ${DROP_FLAG} \
+    ${IMPORT_GZIP_FLAG} \
     --file \"${DEST_FILE}\""
 
   FIRST_IMPORT=false

@@ -53,7 +53,7 @@ Exporta todas las colecciones (o solo las indicadas) de una base concreta. El re
 - Utiliza `mongoexport` con autenticación contra la base indicada por argumento.
 
 ### Restaurar colecciones desde una carpeta o un archivo comprimido
-Importa los respaldos ubicados en una carpeta (o dentro de un `.tar.gz`, `.tgz`, `.tar`, `.gz` o `.zip`).
+Importa los respaldos ubicados en una carpeta (o dentro de un `.tar.gz`, `.tgz`, `.tar`, `.gz` o `.zip`). Los archivos `.json.gz` se importan directamente con `mongoimport --gzip` sin necesidad de descomprimirlos previamente.
 
 ```bash
 # La colección destino se toma del nombre de la carpeta/archivo, o del segundo argumento si se indica.
