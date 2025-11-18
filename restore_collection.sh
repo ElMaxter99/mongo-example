@@ -27,6 +27,9 @@ case "$base_name" in
     DATASET_NAME="${base_name%.*}"
     DATASET_NAME="${DATASET_NAME%.*}"
     ;;
+  *.json.gz)
+    DATASET_NAME="${base_name%.json.gz}"
+    ;;
   *.tar|*.gz|*.zip)
     DATASET_NAME="${base_name%.*}"
     ;;
@@ -42,6 +45,9 @@ elif [[ -f "$INPUT_PATH" ]]; then
   case "$base_name" in
     *.tar.gz|*.tgz)
       tar -xzf "$INPUT_PATH" -C "$cleanup_dir"
+      ;;
+    *.json.gz)
+      gunzip -c "$INPUT_PATH" > "${cleanup_dir}/${DATASET_NAME}.json"
       ;;
     *.tar)
       tar -xf "$INPUT_PATH" -C "$cleanup_dir"
