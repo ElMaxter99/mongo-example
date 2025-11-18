@@ -21,6 +21,7 @@ source .env
 cleanup_dir=""
 working_dir=""
 base_name=$(basename "$INPUT_PATH")
+CONTAINER_BACKUP_ROOT="./backups"
 
 case "$base_name" in
   *.tar.gz|*.tgz)
@@ -85,11 +86,11 @@ else
   DROP_ONCE=false
 fi
 
-docker exec mongo8 sh -c "mkdir -p /backups/restore"
+docker exec mongo8 sh -c "mkdir -p \"${CONTAINER_BACKUP_ROOT}/restore\""
 
 FIRST_IMPORT=true
 for DATA_FILE in "${DATA_FILES[@]}"; do
-  DEST_FILE="/backups/restore/$(basename "$DATA_FILE")"
+  DEST_FILE="${CONTAINER_BACKUP_ROOT}/restore/$(basename "$DATA_FILE")"
   docker cp "$DATA_FILE" "mongo8:${DEST_FILE}" >/dev/null
 
   if [[ -n "$TARGET_COLLECTION" ]]; then
@@ -134,7 +135,7 @@ for DATA_FILE in "${DATA_FILES[@]}"; do
   FIRST_IMPORT=false
 done
 
-docker exec mongo8 sh -c "rm -rf /backups/restore"
+docker exec mongo8 sh -c "rm -rf \"${CONTAINER_BACKUP_ROOT}/restore\""
 [[ -n "$cleanup_dir" ]] && rm -rf "$cleanup_dir"
 
 echo "Restauración finalizada."

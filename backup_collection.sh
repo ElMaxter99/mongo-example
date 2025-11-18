@@ -3,7 +3,7 @@
 set -euo pipefail
 
 DEFAULT_OUTPUT_DIR="./backup-host"
-CONTAINER_BACKUP_ROOT="/backups"
+CONTAINER_BACKUP_ROOT="./backups"
 
 usage() {
   echo "Uso: $0 <base_de_datos> [--output <ruta>] [coleccion1 coleccion2 ... | --all]" >&2
