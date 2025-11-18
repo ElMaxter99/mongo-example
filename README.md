@@ -41,27 +41,30 @@ mongodb://admin:superpassword@localhost:27017/miapp?authSource=admin
 ## Uso de los scripts
 Los scripts asumen que el contenedor se llama `mongo8` (coincide con `docker-compose.yml`). Ejecuta todos los comandos desde la raíz del proyecto.
 
-### Respaldar una o varias colecciones
-Exporta una o varias colecciones a archivos JSON con marca de tiempo. También puedes respaldar todas las colecciones detectadas.
+### Respaldar una base de datos
+Exporta todas las colecciones (o solo las indicadas) de una base concreta. El resultado se guarda en una carpeta del host (por defecto `./backup-host`).
 
 ```bash
-./backup_collection.sh <collection1> [collection2 ...]
-# o bien
-./backup_collection.sh --all
+./backup_collection.sh <base_de_datos> [--output ./ruta_en_host] [coleccion1 coleccion2 ... | --all]
 ```
 
-- Cada archivo se crea en `./mongo_backups/<collection>_YYYYMMDD_HHMMSS.json`.
-- Utiliza `mongoexport` con autenticación contra la base definida en `MONGO_DB_NAME`.
+- Si no se indican colecciones se exportan todas, excluyendo las internas de MongoDB (`admin`, `config`, `local` y las que empiezan por `system.`).
+- El backup se deja en `./backup-host/<base>_YYYYMMDD_HHMMSS/` (puedes cambiar la ruta con `--output`).
+- Utiliza `mongoexport` con autenticación contra la base indicada por argumento.
 
-### Restaurar una colección
-Importa uno o varios archivos JSON previamente generados. Cada colección se **sobrescribe** (`--drop`).
+### Restaurar colecciones desde una carpeta o un archivo comprimido
+Importa los respaldos ubicados en una carpeta (o dentro de un `.tar.gz`, `.tgz`, `.tar`, `.gz` o `.zip`).
 
 ```bash
-./restore_collection.sh ./mongo_backups/<archivo1.json> [./mongo_backups/<archivo2.json> ...]
+# La colección destino se toma del nombre de la carpeta/archivo, o del segundo argumento si se indica.
+./restore_collection.sh ./mi-bda
+./restore_collection.sh ./respaldo.tar.gz nuevo_nombre_coleccion
 ```
 
-- El nombre de la colección se toma del nombre del archivo sin la extensión `.json`.
-- Usa `mongoimport` autenticando con las credenciales de `.env`.
+- Si el archivo está comprimido, el script lo descomprime en una carpeta temporal y localiza todos los `.json` internos.
+- Si hay un único `.json`, se usa el nombre de la carpeta/archivo como nombre de la colección salvo que se indique otro como segundo argumento.
+- Si hay varios `.json` y no se indica un nombre, cada archivo se restaura en una colección con el mismo nombre que el archivo.
+- Usa `mongoimport` autenticando con las credenciales de `.env` y elimina colecciones previas antes de importar (`--drop`).
 
 ## Consejos y comprobaciones rápidas
 - Verifica que el contenedor esté corriendo con `docker ps | grep mongo8`.
