@@ -2,7 +2,7 @@ name: "Mi Stack favorito"
 
 services:
   mongo:
-    image: mongo:8
+    image: '${MONGO_IMAGE:-mongo:8}'
     container_name: mongo8
     restart: always
     ports:
