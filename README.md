@@ -9,14 +9,23 @@ Pequeño entorno de Docker Compose con MongoDB 8 y dos scripts Bash para exporta
 
 ## Configuración
 1. Clona el repositorio y entra en la carpeta `mongo-example`.
-2. Crea un archivo `.env` en la raíz con las variables necesarias:
+2. Crea un archivo `.env` en la raíz con las variables necesarias (ejemplo incluido en el repo):
 
    ```env
    MONGO_PORT=27017
    MONGO_INITDB_ROOT_USERNAME=admin
-   MONGO_INITDB_ROOT_PASSWORD=admin123
-   MONGO_DB_NAME=mi_base
+   MONGO_INITDB_ROOT_PASSWORD=superpassword
+   MONGO_DB_NAME=miapp
+   MONGO_INIT_COLLECTIONS=users,products,orders
    ```
+
+   Con esas variables, tu cadena de conexión quedaría así:
+
+   ```
+   mongodb://admin:superpassword@localhost:27017/miapp?authSource=admin
+   ```
+
+   Al iniciar el contenedor, se crearán automáticamente las colecciones listadas en `MONGO_INIT_COLLECTIONS` gracias al script `mongo-init/01-create-collections.js`.
 
 3. Levanta el contenedor de MongoDB:
 
@@ -30,21 +39,23 @@ Pequeño entorno de Docker Compose con MongoDB 8 y dos scripts Bash para exporta
 ## Uso de los scripts
 Los scripts asumen que el contenedor se llama `mongo8` (coincide con `docker-compose.yml`). Ejecuta todos los comandos desde la raíz del proyecto.
 
-### Respaldar una colección
-Exporta una colección a un archivo JSON con marca de tiempo:
+### Respaldar una o varias colecciones
+Exporta una o varias colecciones a archivos JSON con marca de tiempo. También puedes respaldar todas las colecciones detectadas.
 
 ```bash
-./backup_collection.sh <collection>
+./backup_collection.sh <collection1> [collection2 ...]
+# o bien
+./backup_collection.sh --all
 ```
 
-- El archivo se crea en `./mongo_backups/<collection>_YYYYMMDD_HHMMSS.json`.
+- Cada archivo se crea en `./mongo_backups/<collection>_YYYYMMDD_HHMMSS.json`.
 - Utiliza `mongoexport` con autenticación contra la base definida en `MONGO_DB_NAME`.
 
 ### Restaurar una colección
-Importa un archivo JSON previamente generado. La colección se **sobrescribe** (`--drop`).
+Importa uno o varios archivos JSON previamente generados. Cada colección se **sobrescribe** (`--drop`).
 
 ```bash
-./restore_collection.sh ./mongo_backups/<archivo.json>
+./restore_collection.sh ./mongo_backups/<archivo1.json> [./mongo_backups/<archivo2.json> ...]
 ```
 
 - El nombre de la colección se toma del nombre del archivo sin la extensión `.json`.

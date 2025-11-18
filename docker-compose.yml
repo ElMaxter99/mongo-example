@@ -10,6 +10,10 @@ services:
     environment:
       MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME}
       MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD}
+      MONGO_DB_NAME: ${MONGO_DB_NAME}
+      MONGO_INIT_COLLECTIONS: ${MONGO_INIT_COLLECTIONS}
+      MONGO_INITDB_DATABASE: ${MONGO_DB_NAME}
     volumes:
       - ./mongo_data:/data/db               # Datos persistentes
       - ./mongo_backups:/backups           # Carpeta de backups en host
+      - ./mongo-init:/docker-entrypoint-initdb.d:ro
